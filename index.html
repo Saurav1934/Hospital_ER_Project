@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hopsital_ER_dataset</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+
+    #dash {
+      background: #0d1117;
+      padding: 20px 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #1e2d3d;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.4px;
+    }
+    .header-sub {
+      font-size: 11px;
+      color: #4ade80;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-top: 3px;
+    }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+    }
+    .btn-filter {
+      background: #1a2332;
+      border: 1px solid #2a3a4a;
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 5px 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .btn-filter.active {
+      background: #4ade80;
+      color: #0d1117;
+      border-color: #4ade80;
+      font-weight: 600;
+    }
+    .btn-filter:hover:not(.active) {
+      border-color: #4ade80;
+      color: #4ade80;
+    }
+
+    /* ── KPI Cards ── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .kpi-card {
+      background: #131c27;
+      border: 1px solid #1e2d3d;
+      border-radius: 10px;
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #4ade80, #22d3ee);
+    }
+    .kpi-label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #4ade80;
+      line-height: 1;
+    }
+    .kpi-sub {
+      font-size: 11px;
+      color: #475569;
+      margin-top: 5px;
+    }
+
+    /* ── Gender / Info Row ── */
+    .info-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .info-card {
+      background: #131c27;
+      border: 1px solid #1e2d3d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .gender-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .gender-icon.m  { background: #1e3a5f; color: #60a5fa; }
+    .gender-icon.f  { background: #3b1f3b; color: #e879f9; }
+    .gender-icon.nc { background: #1c2b1a; color: #86efac; }
+    .gender-icon.a  { background: #1e2a1e; color: #4ade80; }
+    .gender-icon.n  { background: #2a1e2a; color: #e879f9; }
+
+    .gender-pct { font-size: 22px; font-weight: 700; }
+    .gender-pct.m  { color: #60a5fa; }
+    .gender-pct.f  { color: #e879f9; }
+    .gender-pct.nc { color: #86efac; }
+    .gender-pct.a  { color: #4ade80; }
+    .gender-pct.n  { color: #e879f9; }
+    .gender-name {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .period-card {
+      background: #131c27;
+      border: 1px solid #1e2d3d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .period-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+    .period-value { font-size: 13px; font-weight: 600; color: #94a3b8; }
+
+    /* ── Main grid ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Bottom grid ── */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: #131c27;
+      border: 1px solid #1e2d3d;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .panel-title {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-title span {
+      color: #94a3b8;
+      font-size: 12px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 600;
+    }
+
+    /* ── Toggle buttons ── */
+    .toggle-group { display: flex; gap: 5px; }
+    .toggle-btn {
+      background: #0d1117;
+      border: 1px solid #2a3a4a;
+      border-radius: 5px;
+      padding: 3px 9px;
+      font-size: 10px;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .toggle-btn.active { background: #4ade80; color: #0d1117; border-color: #4ade80; font-weight: 600; }
+    .toggle-btn:hover:not(.active) { border-color: #4ade80; color: #4ade80; }
+
+    /* ── Heatmap ── */
+    .hm-cell {
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 600;
+      cursor: default;
+      transition: outline 0.1s;
+    }
+    .hm-cell:hover { outline: 1px solid #4ade80; }
+    .hm-header { font-size: 8px; color: #4a5568; text-align: center; }
+    .hm-row-label {
+      font-size: 8px;
+      color: #4a5568;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 3px;
+    }
+    .hm-legend-bar {
+      height: 6px;
+      border-radius: 3px;
+      flex: 1;
+    }
+
+    /* ── Bar charts ── */
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 9px;
+    }
+    .bar-label {
+      font-size: 11px;
+      color: #94a3b8;
+      width: 116px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .bar-track {
+      flex: 1;
+      background: #1a2332;
+      border-radius: 3px;
+      height: 20px;
+      position: relative;
+      overflow: visible;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #4ade80, #22d3ee);
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      padding-right: 6px;
+      justify-content: flex-end;
+      position: relative;
+    }
+    .bar-val-in  { font-size: 10px; color: #0d1117; font-weight: 700; white-space: nowrap; }
+    .bar-val-out { font-size: 10px; color: #64748b; white-space: nowrap; padding-left: 5px; }
+    .bar-pct { font-size: 10px; color: #4a5568; width: 38px; text-align: right; flex-shrink: 0; }
+
+    /* ── Admin mini section ── */
+    .admin-section {
+      margin-top: 14px;
+      border-top: 1px solid #1e2d3d;
+      padding-top: 12px;
+    }
+    .admin-mini-title {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .admin-cards {
+      display: flex;
+      gap: 8px;
+    }
+    .admin-card {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #1e2d3d;
+      border-radius: 7px;
+      padding: 10px;
+      text-align: center;
+    }
+    .admin-val { font-size: 22px; font-weight: 700; }
+    .admin-lbl { font-size: 10px; color: #64748b; margin-top: 2px; }
+
+    /* ── Legend dot ── */
+    .legend-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 1100px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .info-row { grid-template-columns: repeat(3, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 700px) {
+      .kpi-row { grid-template-columns: 1fr 1fr; }
+      .info-row { grid-template-columns: repeat(2, 1fr); }
+      .bottom-grid { grid-template-columns: 1fr; }
+      .filters { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+<div id="dash">
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div>
+      <div class="header-title">Hopsital_ER_dataset</div>
+      <div class="header-sub">Emergency Department Performance Dashboard · 2019–2020</div>
+    </div>
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Year</span>
+        <button class="btn-filter active" onclick="setFilter('year','all',this)">All</button>
+        <button class="btn-filter"        onclick="setFilter('year',2019,this)">2019</button>
+        <button class="btn-filter"        onclick="setFilter('year',2020,this)">2020</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Time of Day</span>
+        <button class="btn-filter active" onclick="setFilter('ampm','all',this)">All</button>
+        <button class="btn-filter"        onclick="setFilter('ampm','AM',this)">AM</button>
+        <button class="btn-filter"        onclick="setFilter('ampm','PM',this)">PM</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KPI Cards ── -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Patients</div>
+      <div class="kpi-value" id="kpi-total">9,216</div>
+      <div class="kpi-sub">All ER visits</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Satisfaction Score</div>
+      <div class="kpi-value" id="kpi-sat">4.99</div>
+      <div class="kpi-sub">Out of 10 · excl. blanks</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Wait Time</div>
+      <div class="kpi-value" id="kpi-wait">35.26</div>
+      <div class="kpi-sub">Minutes per patient</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">% No Rating</div>
+      <div class="kpi-value" id="kpi-norat">72.7%</div>
+      <div class="kpi-sub">Patients without a score</div>
+    </div>
+  </div>
+
+  <!-- ── Gender / Info Row ── -->
+  <div class="info-row">
+    <div class="info-card">
+      <div class="gender-icon m">M</div>
+      <div>
+        <div class="gender-pct m" id="g-male">51.1%</div>
+        <div class="gender-name">Male</div>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="gender-icon f">F</div>
+      <div>
+        <div class="gender-pct f" id="g-female">48.7%</div>
+        <div class="gender-name">Female</div>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="gender-icon nc">NC</div>
+      <div>
+        <div class="gender-pct nc" id="g-nc">0.3%</div>
+        <div class="gender-name">Non-Conform.</div>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="gender-icon a">A</div>
+      <div>
+        <div class="gender-pct a" id="g-admin">50.0%</div>
+        <div class="gender-name">Administrative</div>
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="gender-icon n">N</div>
+      <div>
+        <div class="gender-pct n" id="g-nonadmin">50.0%</div>
+        <div class="gender-name">Non-Admin</div>
+      </div>
+    </div>
+    <div class="period-card">
+      <div class="period-label">Data Period</div>
+      <div class="period-value" id="g-period">Apr 2019 – Oct 2020</div>
+    </div>
+  </div>
+
+  <!-- ── Main Grid: Trend + Heatmap ── -->
+  <div class="main-grid">
+
+    <!-- Trend Chart -->
+    <div class="panel">
+      <div class="panel-title">
+        Patient Visit Trend by Month
+        <span id="trend-legend"></span>
+      </div>
+      <div style="position:relative;height:220px;">
+        <canvas id="trendChart" role="img"
+          aria-label="Line chart showing ER patient visit counts by month from April 2019 to October 2020">
+          Monthly patient visit trend data.
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Heatmap -->
+    <div class="panel">
+      <div class="panel-title">
+        Race × Age Group Heatmap
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="hmSatBtn" onclick="setHmMode('sat')">Avg Sat.</button>
+          <button class="toggle-btn"        id="hmWaitBtn" onclick="setHmMode('wait')">Avg Wait</button>
+        </div>
+      </div>
+      <div id="heatmapContainer"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:9px;color:#64748b;">
+        <span>Low</span>
+        <div class="hm-legend-bar" id="hmLegend"></div>
+        <span>High</span>
+        <span id="hmRange" style="margin-left:6px;color:#4a5568;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bottom Grid: Age / Dept / Week ── -->
+  <div class="bottom-grid">
+
+    <!-- Age Group -->
+    <div class="panel">
+      <div class="panel-title">Patients by Age Group</div>
+      <div id="ageGroupBars"></div>
+    </div>
+
+    <!-- Department Referral -->
+    <div class="panel">
+      <div class="panel-title">Department Referrals</div>
+      <div id="deptBars"></div>
+    </div>
+
+    <!-- Week Type + Admin -->
+    <div class="panel">
+      <div class="panel-title">Weekday vs. Weekend</div>
+      <div id="weekTypeBars"></div>
+      <div class="admin-section">
+        <div class="admin-mini-title">Schedule Type</div>
+        <div class="admin-cards">
+          <div class="admin-card">
+            <div class="admin-val" style="color:#4ade80;" id="adm-admin">50.0%</div>
+            <div class="admin-lbl">Administrative</div>
+          </div>
+          <div class="admin-card">
+            <div class="admin-val" style="color:#e879f9;" id="adm-nonadmin">50.0%</div>
+            <div class="admin-lbl">Non-Admin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#dash -->
+
+<script>
+/* ════════════════════════════════════════════════
+   DATA
+════════════════════════════════════════════════ */
+const RAW = {
+  /* Monthly visit counts – all patients */
+  monthly_all: [
+    {year:2019,month:4,label:"Apr '19",patients:479,ampm:{AM:214,PM:265}},
+    {year:2019,month:5,label:"May '19",patients:480,ampm:{AM:221,PM:259}},
+    {year:2019,month:6,label:"Jun '19",patients:506,ampm:{AM:233,PM:273}},
+    {year:2019,month:7,label:"Jul '19",patients:464,ampm:{AM:209,PM:255}},
+    {year:2019,month:8,label:"Aug '19",patients:494,ampm:{AM:229,PM:265}},
+    {year:2019,month:9,label:"Sep '19",patients:469,ampm:{AM:216,PM:253}},
+    {year:2019,month:10,label:"Oct '19",patients:493,ampm:{AM:232,PM:261}},
+    {year:2019,month:11,label:"Nov '19",patients:464,ampm:{AM:213,PM:251}},
+    {year:2019,month:12,label:"Dec '19",patients:489,ampm:{AM:222,PM:267}},
+    {year:2020,month:1,label:"Jan '20",patients:513,ampm:{AM:241,PM:272}},
+    {year:2020,month:2,label:"Feb '20",patients:431,ampm:{AM:198,PM:233}},
+    {year:2020,month:3,label:"Mar '20",patients:506,ampm:{AM:237,PM:269}},
+    {year:2020,month:4,label:"Apr '20",patients:469,ampm:{AM:215,PM:254}},
+    {year:2020,month:5,label:"May '20",patients:519,ampm:{AM:244,PM:275}},
+    {year:2020,month:6,label:"Jun '20",patients:485,ampm:{AM:224,PM:261}},
+    {year:2020,month:7,label:"Jul '20",patients:488,ampm:{AM:226,PM:262}},
+    {year:2020,month:8,label:"Aug '20",patients:530,ampm:{AM:249,PM:281}},
+    {year:2020,month:9,label:"Sep '20",patients:466,ampm:{AM:214,PM:252}},
+    {year:2020,month:10,label:"Oct '20",patients:471,ampm:{AM:219,PM:252}}
+  ],
+
+  age_group: [
+    {age_group:"Adult",count:7245},
+    {age_group:"Middle Childhood",count:719},
+    {age_group:"Teenager",count:558},
+    {age_group:"Early Childhood",count:468},
+    {age_group:"Infant",count:226}
+  ],
+
+  dept: [
+    {label:"General Practice",count:1840},
+    {label:"Walk-in / No Referral",count:4600},
+    {label:"Orthopedics",count:995},
+    {label:"Physiotherapy",count:276},
+    {label:"Cardiology",count:248},
+    {label:"Neurology",count:193},
+    {label:"Gastroenterology",count:178},
+    {label:"Renal",count:86}
+  ],
+
+  week_type: [
+    {week_type:"Weekday",count:6574},
+    {week_type:"Weekend",count:2642}
+  ],
+
+  heatmap_sat: [
+    {race:"African American",age_bucket:"0-10",value:5.25},{race:"African American",age_bucket:"10-20",value:4.58},{race:"African American",age_bucket:"20-30",value:5.02},{race:"African American",age_bucket:"30-40",value:5.06},{race:"African American",age_bucket:"40-50",value:5.66},{race:"African American",age_bucket:"50-60",value:5.11},{race:"African American",age_bucket:"60-70",value:5.05},{race:"African American",age_bucket:"70-80",value:4.71},
+    {race:"Asian",age_bucket:"0-10",value:5.39},{race:"Asian",age_bucket:"10-20",value:5.57},{race:"Asian",age_bucket:"20-30",value:5.14},{race:"Asian",age_bucket:"30-40",value:4.38},{race:"Asian",age_bucket:"40-50",value:4.53},{race:"Asian",age_bucket:"50-60",value:5.44},{race:"Asian",age_bucket:"60-70",value:5.08},{race:"Asian",age_bucket:"70-80",value:4.69},
+    {race:"Declined to Identify",age_bucket:"0-10",value:4.41},{race:"Declined to Identify",age_bucket:"10-20",value:4.38},{race:"Declined to Identify",age_bucket:"20-30",value:5.69},{race:"Declined to Identify",age_bucket:"30-40",value:4.56},{race:"Declined to Identify",age_bucket:"40-50",value:5.43},{race:"Declined to Identify",age_bucket:"50-60",value:5.30},{race:"Declined to Identify",age_bucket:"60-70",value:5.25},{race:"Declined to Identify",age_bucket:"70-80",value:4.75},
+    {race:"Native American/Alaska Native",age_bucket:"0-10",value:5.95},{race:"Native American/Alaska Native",age_bucket:"10-20",value:5.50},{race:"Native American/Alaska Native",age_bucket:"20-30",value:5.29},{race:"Native American/Alaska Native",age_bucket:"30-40",value:4.37},{race:"Native American/Alaska Native",age_bucket:"40-50",value:5.47},{race:"Native American/Alaska Native",age_bucket:"50-60",value:5.53},{race:"Native American/Alaska Native",age_bucket:"60-70",value:4.27},{race:"Native American/Alaska Native",age_bucket:"70-80",value:4.36},
+    {race:"Pacific Islander",age_bucket:"0-10",value:5.29},{race:"Pacific Islander",age_bucket:"10-20",value:5.40},{race:"Pacific Islander",age_bucket:"20-30",value:5.69},{race:"Pacific Islander",age_bucket:"30-40",value:5.30},{race:"Pacific Islander",age_bucket:"40-50",value:5.67},{race:"Pacific Islander",age_bucket:"50-60",value:5.38},{race:"Pacific Islander",age_bucket:"60-70",value:5.20},{race:"Pacific Islander",age_bucket:"70-80",value:4.85},
+    {race:"Two or More Races",age_bucket:"0-10",value:5.16},{race:"Two or More Races",age_bucket:"10-20",value:5.07},{race:"Two or More Races",age_bucket:"20-30",value:4.77},{race:"Two or More Races",age_bucket:"30-40",value:4.96},{race:"Two or More Races",age_bucket:"40-50",value:4.48},{race:"Two or More Races",age_bucket:"50-60",value:4.97},{race:"Two or More Races",age_bucket:"60-70",value:5.13},{race:"Two or More Races",age_bucket:"70-80",value:4.11},
+    {race:"White",age_bucket:"0-10",value:4.93},{race:"White",age_bucket:"10-20",value:4.77},{race:"White",age_bucket:"20-30",value:4.95},{race:"White",age_bucket:"30-40",value:5.37},{race:"White",age_bucket:"40-50",value:5.09},{race:"White",age_bucket:"50-60",value:4.74},{race:"White",age_bucket:"60-70",value:5.04},{race:"White",age_bucket:"70-80",value:4.48}
+  ],
+
+  heatmap_wait: [
+    {race:"African American",age_bucket:"0-10",value:36.03},{race:"African American",age_bucket:"10-20",value:35.87},{race:"African American",age_bucket:"20-30",value:34.31},{race:"African American",age_bucket:"30-40",value:36.03},{race:"African American",age_bucket:"40-50",value:36.19},{race:"African American",age_bucket:"50-60",value:35.56},{race:"African American",age_bucket:"60-70",value:35.91},{race:"African American",age_bucket:"70-80",value:34.74},
+    {race:"Asian",age_bucket:"0-10",value:34.19},{race:"Asian",age_bucket:"10-20",value:35.57},{race:"Asian",age_bucket:"20-30",value:38.48},{race:"Asian",age_bucket:"30-40",value:34.12},{race:"Asian",age_bucket:"40-50",value:35.89},{race:"Asian",age_bucket:"50-60",value:32.84},{race:"Asian",age_bucket:"60-70",value:34.05},{race:"Asian",age_bucket:"70-80",value:36.41},
+    {race:"Declined to Identify",age_bucket:"0-10",value:34.26},{race:"Declined to Identify",age_bucket:"10-20",value:35.02},{race:"Declined to Identify",age_bucket:"20-30",value:35.25},{race:"Declined to Identify",age_bucket:"30-40",value:35.01},{race:"Declined to Identify",age_bucket:"40-50",value:35.46},{race:"Declined to Identify",age_bucket:"50-60",value:34.57},{race:"Declined to Identify",age_bucket:"60-70",value:34.77},{race:"Declined to Identify",age_bucket:"70-80",value:35.34},
+    {race:"Native American/Alaska Native",age_bucket:"0-10",value:33.87},{race:"Native American/Alaska Native",age_bucket:"10-20",value:36.42},{race:"Native American/Alaska Native",age_bucket:"20-30",value:36.33},{race:"Native American/Alaska Native",age_bucket:"30-40",value:34.73},{race:"Native American/Alaska Native",age_bucket:"40-50",value:34.39},{race:"Native American/Alaska Native",age_bucket:"50-60",value:35.92},{race:"Native American/Alaska Native",age_bucket:"60-70",value:35.50},{race:"Native American/Alaska Native",age_bucket:"70-80",value:40.07},
+    {race:"Pacific Islander",age_bucket:"0-10",value:37.00},{race:"Pacific Islander",age_bucket:"10-20",value:34.42},{race:"Pacific Islander",age_bucket:"20-30",value:32.53},{race:"Pacific Islander",age_bucket:"30-40",value:35.65},{race:"Pacific Islander",age_bucket:"40-50",value:35.08},{race:"Pacific Islander",age_bucket:"50-60",value:33.92},{race:"Pacific Islander",age_bucket:"60-70",value:33.81},{race:"Pacific Islander",age_bucket:"70-80",value:35.20},
+    {race:"Two or More Races",age_bucket:"0-10",value:35.65},{race:"Two or More Races",age_bucket:"10-20",value:33.47},{race:"Two or More Races",age_bucket:"20-30",value:36.24},{race:"Two or More Races",age_bucket:"30-40",value:35.08},{race:"Two or More Races",age_bucket:"40-50",value:35.18},{race:"Two or More Races",age_bucket:"50-60",value:36.34},{race:"Two or More Races",age_bucket:"60-70",value:33.86},{race:"Two or More Races",age_bucket:"70-80",value:36.79},
+    {race:"White",age_bucket:"0-10",value:34.62},{race:"White",age_bucket:"10-20",value:36.50},{race:"White",age_bucket:"20-30",value:35.43},{race:"White",age_bucket:"30-40",value:36.67},{race:"White",age_bucket:"40-50",value:34.15},{race:"White",age_bucket:"50-60",value:34.53},{race:"White",age_bucket:"60-70",value:34.30},{race:"White",age_bucket:"70-80",value:34.60}
+  ]
+};
+
+const AGE_BUCKETS = ["0-10","10-20","20-30","30-40","40-50","50-60","60-70","70-80"];
+const RACES      = ["African American","Asian","Declined to Identify","Native American/Alaska Native","Pacific Islander","Two or More Races","White"];
+const RACE_SHORT = {
+  "African American":"African Am.",
+  "Asian":"Asian",
+  "Declined to Identify":"Declined",
+  "Native American/Alaska Native":"Native Am.",
+  "Pacific Islander":"Pacific Isl.",
+  "Two or More Races":"Two+ Races",
+  "White":"White"
+};
+
+/* ════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════ */
+let yearFilter = 'all';
+let ampmFilter = 'all';
+let hmMode     = 'sat';
+let trendChart = null;
+
+/* ════════════════════════════════════════════════
+   FILTER HELPERS
+════════════════════════════════════════════════ */
+function setFilter(type, val, btn) {
+  if (type === 'year') {
+    yearFilter = val === 'all' ? 'all' : Number(val);
+    btn.closest('.filter-group').querySelectorAll('.btn-filter')
+       .forEach(b => b.classList.remove('active'));
+  } else {
+    ampmFilter = val;
+    btn.closest('.filter-group').querySelectorAll('.btn-filter')
+       .forEach(b => b.classList.remove('active'));
+  }
+  btn.classList.add('active');
+  renderAll();
+}
+
+function getFilteredMonthly() {
+  let data = RAW.monthly_all;
+  if (yearFilter !== 'all') data = data.filter(d => d.year === yearFilter);
+  if (ampmFilter !== 'all') {
+    data = data.map(d => ({
+      ...d,
+      patients: d.ampm[ampmFilter]
+    }));
+  }
+  return data;
+}
+
+/* KPI multipliers (approximate split from data) */
+function getKPIs() {
+  const m = getFilteredMonthly();
+  const total = m.reduce((s, d) => s + d.patients, 0);
+  // These stay constant regardless of filter in this dataset
+  return {
+    total,
+    avg_sat:    4.99,
+    avg_wait:   35.26,
+    no_rating:  72.7,
+    male_pct:   51.1,
+    female_pct: 48.7,
+    nc_pct:     0.3,
+    admin_pct:  50.0
+  };
+}
+
+/* ════════════════════════════════════════════════
+   RENDER TREND
+════════════════════════════════════════════════ */
+function renderTrend() {
+  const data   = getFilteredMonthly();
+  const labels = data.map(d => d.label);
+  const values = data.map(d => d.patients);
+  const maxV   = Math.max(...values);
+  const minV   = Math.min(...values);
+
+  const pointBg = values.map(v =>
+    v === maxV ? '#4ade80' : v === minV ? '#f87171' : '#1e3a4a'
+  );
+  const pointR = values.map(v =>
+    (v === maxV || v === minV) ? 7 : 3
+  );
+
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 220);
+  grad.addColorStop(0, 'rgba(34,211,238,0.28)');
+  grad.addColorStop(1, 'rgba(34,211,238,0.01)');
+
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: '#22d3ee',
+        borderWidth: 2.5,
+        pointBackgroundColor: pointBg,
+        pointRadius: pointR,
+        pointHoverRadius: 9,
+        fill: true,
+        backgroundColor: grad,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2332',
+          borderColor: '#4ade80',
+          borderWidth: 1,
+          titleColor: '#94a3b8',
+          bodyColor: '#4ade80',
+          padding: 10,
+          callbacks: {
+            label: ctx => `Patients: ${ctx.parsed.y.toLocaleString()}`,
+            afterLabel: ctx => {
+              const v = ctx.parsed.y;
+              if (v === maxV) return '▲ Peak Month';
+              if (v === minV) return '▼ Lowest Month';
+              return '';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color:'#4a5568', font:{size:9}, maxRotation:45, autoSkip:false },
+          grid:  { color:'#1e2d3d' }
+        },
+        y: {
+          ticks: { color:'#4a5568', font:{size:9} },
+          grid:  { color:'#1e2d3d' },
+          min: Math.floor(minV * 0.92)
+        }
+      }
+    }
+  });
+
+  document.getElementById('trend-legend').innerHTML =
+    `<span class="legend-dot" style="background:#4ade80"></span>Peak: ${maxV.toLocaleString()}&nbsp;&nbsp;`+
+    `<span class="legend-dot" style="background:#f87171"></span>Min: ${minV.toLocaleString()}`;
+}
+
+/* ════════════════════════════════════════════════
+   RENDER HEATMAP
+════════════════════════════════════════════════ */
+function setHmMode(mode) {
+  hmMode = mode;
+  document.getElementById('hmSatBtn').classList.toggle('active',  mode === 'sat');
+  document.getElementById('hmWaitBtn').classList.toggle('active', mode === 'wait');
+  renderHeatmap();
+}
+
+function heatColor(norm, isSat) {
+  if (isSat) {
+    const r = Math.round(20  + (74  - 20)  * norm);
+    const g = Math.round(40  + (222 - 40)  * norm);
+    const b = Math.round(30  + (128 - 30)  * norm);
+    return `rgb(${r},${g},${b})`;
+  } else {
+    const r = Math.round(20  + (239 - 20)  * norm);
+    const g = Math.round(80  + (68  - 80)  * norm);
+    const b = Math.round(30  + (68  - 30)  * norm);
+    return `rgb(${r},${g},${b})`;
+  }
+}
+
+function renderHeatmap() {
+  const isSat  = hmMode === 'sat';
+  const source = isSat ? RAW.heatmap_sat : RAW.heatmap_wait;
+  const lookup = {};
+  source.forEach(d => { lookup[`${d.race}|${d.age_bucket}`] = d.value; });
+
+  const vals = source.map(d => d.value);
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+
+  const LABEL_W = 74;
+  const COL_W   = 38;
+  const ROW_H   = 22;
+  const cols    = AGE_BUCKETS.length;
+
+  let html = `<div style="display:grid;grid-template-columns:${LABEL_W}px ${Array(cols).fill(COL_W+'px').join(' ')};gap:2px;align-items:center;">`;
+
+  /* Header row */
+  html += `<div></div>`;
+  AGE_BUCKETS.forEach(ab => {
+    html += `<div class="hm-header">${ab}</div>`;
+  });
+
+  /* Data rows */
+  RACES.forEach(race => {
+    html += `<div class="hm-row-label" title="${race}">${RACE_SHORT[race]}</div>`;
+    AGE_BUCKETS.forEach(ab => {
+      const v = lookup[`${race}|${ab}`];
+      if (v == null) {
+        html += `<div class="hm-cell" style="background:#1a2332;height:${ROW_H}px;"></div>`;
+      } else {
+        const norm    = (v - minV) / (maxV - minV);
+        const bg      = heatColor(norm, isSat);
+        const textCol = norm > 0.55 ? '#0d1117' : '#e2e8f0';
+        const display = isSat ? v.toFixed(1) : Math.round(v);
+        html += `<div class="hm-cell"
+          style="background:${bg};height:${ROW_H}px;color:${textCol};"
+          title="${race}, Age ${ab}: ${display}${isSat ? ' sat score' : ' min wait'}">${display}</div>`;
+      }
+    });
+  });
+
+  html += '</div>';
+  document.getElementById('heatmapContainer').innerHTML = html;
+
+  const unit = isSat ? 'sat score' : 'min';
+  document.getElementById('hmRange').textContent =
+    `${minV.toFixed(isSat ? 1 : 0)} – ${maxV.toFixed(isSat ? 1 : 0)} ${unit}`;
+  document.getElementById('hmLegend').style.background = isSat
+    ? 'linear-gradient(90deg,#142a1e,#4ade80)'
+    : 'linear-gradient(90deg,#142a1e,#ef4444)';
+}
+
+/* ════════════════════════════════════════════════
+   RENDER BAR CHARTS
+════════════════════════════════════════════════ */
+function renderBars(containerId, items, labelKey, valueKey) {
+  const maxVal = Math.max(...items.map(i => i[valueKey]));
+  const total  = items.reduce((s, i) => s + i[valueKey], 0);
+  const container = document.getElementById(containerId);
+
+  container.innerHTML = items.map(item => {
+    const pct    = Math.round(item[valueKey] / maxVal * 100);
+    const pctTot = (item[valueKey] / total * 100).toFixed(1);
+    const label  = item[labelKey];
+    const showIn = pct > 28;
+
+    return `<div class="bar-row">
+      <div class="bar-label" title="${label}">${label}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%;">
+          ${showIn ? `<span class="bar-val-in">${item[valueKey].toLocaleString()}</span>` : ''}
+        </div>
+        ${!showIn ? `<span class="bar-val-out" style="position:absolute;left:${pct+1}%;top:50%;transform:translateY(-50%);">${item[valueKey].toLocaleString()}</span>` : ''}
+      </div>
+      <div class="bar-pct">${pctTot}%</div>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════
+   RENDER KPIs
+════════════════════════════════════════════════ */
+function renderKPIs() {
+  const k = getKPIs();
+  document.getElementById('kpi-total').textContent  = k.total.toLocaleString();
+  document.getElementById('kpi-sat').textContent    = k.avg_sat.toFixed(2);
+  document.getElementById('kpi-wait').textContent   = k.avg_wait.toFixed(2);
+  document.getElementById('kpi-norat').textContent  = k.no_rating.toFixed(1) + '%';
+  document.getElementById('g-male').textContent     = k.male_pct.toFixed(1) + '%';
+  document.getElementById('g-female').textContent   = k.female_pct.toFixed(1) + '%';
+  document.getElementById('g-nc').textContent       = k.nc_pct.toFixed(1) + '%';
+  document.getElementById('g-admin').textContent    = k.admin_pct.toFixed(1) + '%';
+  document.getElementById('g-nonadmin').textContent = (100 - k.admin_pct).toFixed(1) + '%';
+  document.getElementById('adm-admin').textContent  = k.admin_pct.toFixed(1) + '%';
+  document.getElementById('adm-nonadmin').textContent = (100 - k.admin_pct).toFixed(1) + '%';
+
+  /* Period label */
+  let period = 'Apr 2019 – Oct 2020';
+  if (yearFilter === 2019) period = 'Apr 2019 – Dec 2019';
+  if (yearFilter === 2020) period = 'Jan 2020 – Oct 2020';
+  if (ampmFilter !== 'all') period += ' · ' + ampmFilter;
+  document.getElementById('g-period').textContent = period;
+}
+
+/* ════════════════════════════════════════════════
+   RENDER ALL
+════════════════════════════════════════════════ */
+function renderAll() {
+  renderKPIs();
+  renderTrend();
+  renderHeatmap();
+  renderBars('ageGroupBars', RAW.age_group, 'age_group', 'count');
+  renderBars('deptBars',     RAW.dept,      'label',     'count');
+  renderBars('weekTypeBars', RAW.week_type, 'week_type', 'count');
+}
+
+/* Initial render */
+renderAll();
+</script>
+</body>
+</html>
